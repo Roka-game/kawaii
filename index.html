@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ミニカフェゲーム（タッチ対応完全版）</title>
+<style>
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    touch-action: none; /* タッチスクロール無効化 */
+  }
+
+  #titleScreen, #game, #endScreen {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: none;
+    flex-direction: column;
+  }
+
+  /* タイトル画面 */
+  #titleScreen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    color: white;
+    text-shadow: 1px 1px 3px #000;
+  }
+  #titleLogo { width:60%; margin-top:20%; margin-bottom:auto; }
+  #startBtn {
+    margin-top: auto;
+    margin-bottom: 20%;
+    padding: 3vw 6vw;
+    font-size: 4vw;
+    background: #ffb6c1;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 2vw;
+    transition: background 0.3s ease;
+  }
+  #startBtn:hover { background: #ff1493; }
+
+  /* カウントダウン */
+  #countdown {
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    font-size:15vw;
+    font-weight:bold;
+    display:none;
+    color:#fff;
+    text-shadow:2px 2px 5px #000;
+  }
+
+  /* ゲーム画面 */
+  #game {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+   background: url('images/haikei1.PNG') no-repeat center/cover;
+  }
+
+  #header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:2vw 4vw;
+    font-size:4vw;
+    font-weight:bold;
+    background:#ffe0b2;
+    flex-shrink:0;
+    z-index:10;
+  }
+
+  #customers {
+    display: grid;
+    grid-template-columns: repeat(2, 45vw);
+    grid-template-rows: repeat(2, 45vw);
+    justify-items: center;
+    align-items: end;
+    gap: 4vw 2vw;
+  }
+
+  .customer-slot {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    position: relative;
+  }
+
+  .customer {
+    width: 70%;
+    height: 70%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+
+  /* 吹き出し */
+  .bubble {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translateX(5%) translateY(-50%);
+    background: #fff;
+    border: 0.3vw solid #333;
+    padding: 1vw 2vw;
+    border-radius: 2vw;
+    font-size: 3vw;
+    display: flex;
+    flex-direction: column;
+    gap: 1vw;
+    z-index: 2;
+    align-items: center;
+  }
+
+  .bubble img {
+    width: 8vw;
+    height: 8vw;
+    object-fit: contain;
+  }
+
+  /* アイテム棚 */
+  #items {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2vw;
+    padding: 2vw;
+    background: url('images/haikei2.PNG') no-repeat center/cover;
+    z-index: 5;
+  }
+  .item {
+    height: 15vw;
+    background: #eee;
+    border: 0.5vw solid #333;
+    cursor: grab;
+    text-align: center;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
+  .item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+  }
+
+  /* クリア画面 */
+  #endScreen {
+    position:absolute;
+    top:0; left:0;
+    width:100%; height:100%;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    background:#fff;
+    color:#333;
+    font-weight:bold;
+    text-shadow:none;
+  }
+  #endHeader {
+    position:absolute;
+    top:2vw; left:2vw;
+    display:flex;
+    flex-direction:column;
+    gap:1vw;
+    font-size:4vw;
+    z-index:5;
+  }
+  #clearImage { max-width:60%; margin-top:20vw; }
+  #restartBtn {
+    margin-top:auto;
+    margin-bottom:5vw;
+    padding:3vw 6vw;
+    font-size:4vw;
+    background:#ff7043;
+    border:none;
+    color:white;
+    cursor:pointer;
+  }
+
+  /* フィーバータイムカットイン */
+  #feverCutIn {
+    position:absolute;
+    top:0; left:0;
+    width:100%; height:100%;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    background:rgba(255,255,255,0.6);
+    z-index:10;
+  }
+  #feverCutIn img { max-width:80%; }
+
+</style>
+</head>
+<body>
+
+<!-- タイトル画面 -->
+<div id="titleScreen">
+  <img src="images/titlelogo.PNG" alt="ミニカフェゲーム" id="titleLogo">
+  <button id="startBtn">ゲームスタート</button>
+</div>
+
+<!-- カウントダウン -->
+<div id="countdown">3</div>
+
+<!-- ゲーム画面 -->
+<div id="game">
+  <div id="header">
+    <div>⏱ <span id="timer">90</span>s</div>
+    <div>⭐ <span id="score">0000</span></div>
+  </div>
+
+  <div id="customers">
+    <div class="customer-slot" data-slot="0"></div>
+    <div class="customer-slot" data-slot="1"></div>
+    <div class="customer-slot" data-slot="2"></div>
+    <div class="customer-slot" data-slot="3"></div>
+  </div>
+
+  <div id="items"></div>
+  <div id="feverBackground"></div>
+
+  <!-- フィーバータイムカットイン -->
+  <div id="feverCutIn">
+    <img src="images/cutin.PNG" alt="FEVER!">
+  </div>
+</div>
+
+<!-- クリア画面 -->
+<div id="endScreen">
+  <div id="endHeader">
+    <div id="rank">ランク: -</div>
+    <div id="finalScore">あなたのスコア: 0</div>
+  </div>
+  <img id="clearImage" src="" alt="クリアイラスト">
+  <button id="restartBtn">もう一度</button>
+</div>
+
+<script>
+// ここからゲームスクリプトは元コードをほぼそのまま
+// （touch / drag / spawn / score / fever / endなどの処理）
+let timeLeft = 90;
+let score = 0;
+let missCount = 0;
+let gameInterval, timerInterval;
+let feverTime = false;
+let touchDragItem = null;
+let touchDragEl = null;
+
+const items = [
+  { id: "A-1", img: "images/item_A-1.PNG", imgObj: null },
+  { id: "A-2", img: "images/item_A-2.PNG", imgObj: null },
+  { id: "A-3", img: "images/item_A-3.PNG", imgObj: null },
+  { id: "B-1", img: "images/item_B-1.PNG", imgObj: null },
+  { id: "B-2", img: "images/item_B-2.PNG", imgObj: null },
+  { id: "B-3", img: "images/item_B-3.PNG", imgObj: null },
+  { id: "C-1", img: "images/item_C-1.PNG", imgObj: null },
+  { id: "C-2", img: "images/item_C-2.PNG", imgObj: null },
+  { id: "C-3", img: "images/item_C-3.PNG", imgObj: null }
+];
+
+const slotImages = [
+  {normal:"images/kyaku1.PNG", happy:"images/kyaku1_happy.PNG", sad:"images/kyaku1_sad.PNG"},
+  {normal:"images/kyaku2.PNG", happy:"images/kyaku2_happy.PNG", sad:"images/kyaku2_sad.PNG"},
+  {normal:"images/kyaku3.PNG", happy:"images/kyaku3_happy.PNG", sad:"images/kyaku3_sad.PNG"},
+  {normal:"images/kyaku4.PNG", happy:"images/kyaku4_happy.PNG", sad:"images/kyaku4_sad.PNG"},
+];
+
+const preloadList = [
+  "images/titlelogo.PNG",
+  "images/cutin.PNG",
+  "images/clear.PNG",
+  ...items.map(i => i.img),
+  ...slotImages.flatMap(s => [s.normal, s.happy, s.sad])
+];
+
+const slots = () => Array.from(document.querySelectorAll('.customer-slot'));
+const titleScreen = document.getElementById("titleScreen");
+const countdownEl = document.getElementById("countdown");
+const gameEl = document.getElementById("game");
+const endScreen = document.getElementById("endScreen");
+const scoreEl = document.getElementById("score");
+const timerEl = document.getElementById("timer");
+const feverBg = document.getElementById("feverBackground");
+
+function preloadImages(list){
+  const promises = list.map(src=>{
+    return new Promise((resolve)=>{
+      const img = new Image();
+      img.onload = () => resolve({src, img});
+      img.onerror = () => resolve({src, img: null});
+      img.src = src;
+    });
+  });
+  return Promise.all(promises).then(results=>{
+    results.forEach(r=>{
+      const found = items.find(it => it.img === r.src);
+      if(found && r.img) found.imgObj = r.img;
+    });
+    return results;
+  });
+}
+
+window.addEventListener("load", async () => {
+  await preloadImages(preloadList);
+  showScreen("titleScreen");
+});
+
+function showScreen(screenId){
+  titleScreen.style.display="none";
+  gameEl.style.display="none";
+  endScreen.style.display="none";
+  if(screenId) document.getElementById(screenId).style.display="flex";
+}
+
+function addScore(points){
+  score += feverTime ? points*2 : points;
+  scoreEl.textContent = String(score).padStart(4,'0');
+}
+
+// --- start / restart buttons ---
+document.getElementById("startBtn").addEventListener("click", startCountdown);
+document.getElementById("restartBtn").addEventListener("click", resetGame);
+
+function startCountdown(){
+  titleScreen.style.display="none";
+  endScreen.style.display="none";
+  countdownEl.style.display="block";
+  let count = 3;
+  countdownEl.textContent = count;
+  const interval = setInterval(()=>{
+    count--;
+    if(count>0){
+      countdownEl.textContent = count;
+    } else {
+      clearInterval(interval);
+      countdownEl.style.display="none";
+      startGame();
+    }
+  },1000);
+}
+
+// --- ゲーム開始 ---
+function startGame(){
+  showScreen("game");
+  timeLeft = 90;
+  score = 0;
+  missCount = 0;
+  feverTime = false;
+  feverBg.style.opacity = 0;
+  scoreEl.textContent = score.toString().padStart(4,'0');
+  timerEl.textContent = timeLeft;
+  slots().forEach(s=>s.innerHTML='');
+
+  const itemsDiv = document.getElementById("items");
+  itemsDiv.innerHTML = "";
+  items.forEach(it => {
+    const d = document.createElement("div");
+    d.className = "item";
+    d.dataset.id = it.id;
+
+    const imgEl = document.createElement("img");
+    imgEl.alt = it.id;
+    imgEl.src = it.img;
+    imgEl.loading = "eager";
+    d.appendChild(imgEl);
+
+    // PC drag
+    d.draggable = true;
+    d.addEventListener("dragstart", e => {
+      e.dataTransfer.effectAllowed = "copy";
+      e.dataTransfer.setData("text/plain", it.id);
+    });
+
+    // Touch support
+    d.addEventListener("touchstart", e => {
+      e.preventDefault();
+      touchDragItem = it.id;
+      const touch = e.touches[0];
+      touchDragEl = imgEl.cloneNode(true);
+      touchDragEl.style.position = "fixed";
+      touchDragEl.style.pointerEvents = "none";
+      touchDragEl.style.width = imgEl.offsetWidth + "px";
+      touchDragEl.style.height = imgEl.offsetHeight + "px";
+      touchDragEl.style.zIndex = 1000;
+      document.body.appendChild(touchDragEl);
+      touchDragEl.style.left = touch.clientX - imgEl.offsetWidth/2 + "px";
+      touchDragEl.style.top = touch.clientY - imgEl.offsetHeight/2 + "px";
+    });
+
+    d.addEventListener("touchmove", e => {
+      if(!touchDragEl) return;
+      const touch = e.touches[0];
+      touchDragEl.style.left = touch.clientX - touchDragEl.offsetWidth/2 + "px";
+      touchDragEl.style.top = touch.clientY - touchDragEl.offsetHeight/2 + "px";
+    });
+
+    d.addEventListener("touchend", e => {
+      if(!touchDragEl) return;
+      const touch = e.changedTouches[0];
+      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+      const slotEl = elem.closest('.customer-slot');
+      if(slotEl) handleDrop(slotEl, touchDragItem);
+      document.body.removeChild(touchDragEl);
+      touchDragEl = null;
+      touchDragItem = null;
+    });
+
+    itemsDiv.appendChild(d);
+  });
+
+  // Timer
+  timerInterval = setInterval(()=>{
+    timeLeft--;
+    timerEl.textContent = timeLeft;
+    checkFeverTime();
+    if(timeLeft <= 0) endGame();
+  },1000);
+
+  gameInterval = setInterval(spawnCustomer, 1200 + Math.random()*1200);
+}
+
+function spawnCustomer(){
+  if(timeLeft <= 0) return;
+  const emptySlots = slots().filter(s=>!s.querySelector('.customer'));
+  if(emptySlots.length === 0) return;
+  const slot = emptySlots[Math.floor(Math.random()*emptySlots.length)];
+  const slotIndex = parseInt(slot.dataset.slot);
+  const c = document.createElement('div');
+  c.className = 'customer';
+  c.style.backgroundImage = `url('${slotImages[slotIndex].normal}')`;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+
+  let orderCount = 1;
+  if(timeLeft <= 60) orderCount = 2;
+  if(timeLeft <= 30) orderCount = 3;
+
+  const order = [];
+  while(order.length < orderCount){
+    const pickObj = items[Math.floor(Math.random()*items.length)];
+    if(!order.find(o=>o.id === pickObj.id)) order.push(pickObj);
+  }
+
+  updateBubble(bubble, order);
+  c.dataset.order = JSON.stringify(order.map(o=>o.id));
+  c.dataset.slotIndex = slotIndex;
+  c.appendChild(bubble);
+  slot.appendChild(c);
+
+  c.leaveTimer = setTimeout(()=>{
+    if(slot.contains(c)){
+      score -= 20; if(score < 0) score = 0;
+      missCount++;
+      scoreEl.textContent = String(score).padStart(4,'0');
+      c.style.backgroundImage = `url('${slotImages[slotIndex].sad}')`;
+      setTimeout(()=>{ if(slot.contains(c)) slot.removeChild(c); }, 500);
+    }
+  }, 15000);
+}
+
+function updateBubble(bubbleEl, orderObjs){
+  bubbleEl.innerHTML = "";
+  orderObjs.forEach(it => {
+    const img = document.createElement("img");
+    img.src = it.img;
+    img.alt = it.id;
+    bubbleEl.appendChild(img);
+  });
+}
+
+// Drop handling (PC)
+document.addEventListener("dragover", e => e.preventDefault());
+slots().forEach(slotEl => {
+  slotEl.addEventListener('dragover', e => e.preventDefault());
+  slotEl.addEventListener('drop', e => handleDrop(slotEl, e.dataTransfer.getData("text/plain")));
+});
+
+// Drop handling (Touch)
+slots().forEach(slotEl => {
+  slotEl.addEventListener('touchend', e => {
+    if(touchDragItem){
+      handleDrop(slotEl, touchDragItem);
+      touchDragItem = null;
+    }
+  });
+});
+
+function handleDrop(slotEl, droppedId){
+  const cust = slotEl.querySelector('.customer');
+  if(!cust) return;
+  const orderIds = JSON.parse(cust.dataset.order);
+  const idx = orderIds.findIndex(x => x === droppedId);
+  if(idx !== -1){
+    orderIds.splice(idx,1);
+    const remainingObjs = orderIds.map(id => items.find(it=>it.id===id));
+    const bubbleEl = cust.querySelector('.bubble');
+    updateBubble(bubbleEl, remainingObjs);
+    cust.dataset.order = JSON.stringify(orderIds);
+    if(orderIds.length === 0){
+      addScore(50);
+      const sIdx = parseInt(cust.dataset.slotIndex);
+      if(cust.leaveTimer) clearTimeout(cust.leaveTimer);
+      cust.style.backgroundImage = `url('${slotImages[sIdx].happy}')`;
+      setTimeout(()=>{ if(slotEl.contains(cust)) slotEl.removeChild(cust); }, 500);
+    }
+  } else {
+    score -= 10; if(score < 0) score = 0;
+    missCount++;
+    scoreEl.textContent = String(score).padStart(4,'0');
+    const sIdx = parseInt(cust.dataset.slotIndex);
+    if(cust.leaveTimer) clearTimeout(cust.leaveTimer);
+    cust.style.backgroundImage = `url('${slotImages[sIdx].sad}')`;
+    setTimeout(()=>{ if(slotEl.contains(cust)) slotEl.removeChild(cust); }, 500);
+  }
+}
+
+function checkFeverTime(){
+  if(timeLeft <= 30 && missCount === 0 && !feverTime){
+    feverTime = true;
+    const feverCutIn = document.getElementById("feverCutIn");
+    feverCutIn.style.display = "flex";
+    feverBg.style.opacity = 1; // ✨キラキラ発動！
+    setTimeout(()=>{ feverCutIn.style.display = "none"; }, 2000);
+    setTimeout(()=>{
+ feverTime = false; }, 20000);
+  }
+}
+
+/* -----------------------
+   終了 / リセット
+   ----------------------- */
+function endGame(){
+  clearInterval(timerInterval);
+  clearInterval(gameInterval);
+
+  // スロットをクリア
+  slots().forEach(s=>{
+    const c = s.querySelector('.customer');
+    if(c && c.leaveTimer) clearTimeout(c.leaveTimer);
+    if(c) s.removeChild(c);
+  });
+
+  showScreen("endScreen");
+  document.getElementById("finalScore").textContent = "あなたのスコア: " + score;
+  document.getElementById("rank").textContent = "ランク: " + (score>=1500?"S":score>=700?"A":score>=400?"B":"C");
+
+  document.getElementById("clearImage").src = "images/clear.PNG";
+}
+
+function resetGame(){
+  // stop timers just in case
+  clearInterval(timerInterval);
+  clearInterval(gameInterval);
+  showScreen("titleScreen");
+}
+</script>
+</body>
+</html>
